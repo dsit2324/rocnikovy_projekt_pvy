@@ -1,0 +1,26 @@
+.blockMessage {
+    background-color: azure;
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid #666;
+    border-radius: 10px;
+    width: 50%;
+}
+
+.blockMessage h3 {
+    font-size: 1em;
+    color: blue;
+    margin: 0;
+    padding: 0;
+}
+
+.blockMessage p {
+    font-size: 0.8em;
+    margin: 0;
+    padding: 0;
+}
+
+.chat-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
