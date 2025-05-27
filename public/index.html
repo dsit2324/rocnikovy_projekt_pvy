@@ -1,12 +1,25 @@
-<!-- Zkrácená a upravená verze -->
 <!DOCTYPE html>
 <html lang="cs">
 <head>
     <meta charset="UTF-8" />
     <title>Socket Chat</title>
     <style>
-        body { font-family: sans-serif; background: #222; color: #fff; padding: 20px; }
-        #messages div { margin-bottom: 10px; }
+        body {
+            font-family: sans-serif;
+            background: #222;
+            color: #fff;
+            padding: 20px;
+        }
+        #messages div {
+            margin-bottom: 10px;
+            background: #333;
+            padding: 8px;
+            border-radius: 5px;
+        }
+        input, button {
+            padding: 8px;
+            margin: 5px;
+        }
     </style>
 </head>
 <body>
@@ -33,6 +46,12 @@
                 messageInput.value = "";
             }
         };
+
+        messageInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                sendBtn.click();
+            }
+        });
 
         socket.on("chatMessage", ({ username, message }) => {
             const msgEl = document.createElement("div");
