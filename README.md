@@ -1,1 +1,2 @@
-# rocnikovy_projekt_pvy
+# Ročníkový projekt do PVY - 2. ročník
+Tohleto je to můj ročníkový projekt do předmětu Programové vybavení - Node.js & Socket.io chat
