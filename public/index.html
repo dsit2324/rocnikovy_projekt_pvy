@@ -4,8 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Messenger</title>
+
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
     <style>
+        /* Nastavení pro zobrazení zpráv */
         #messages {
             max-width: 600px;
             margin: 0 auto;
@@ -18,7 +22,7 @@
         }
     </style>
 </head>
-<body class="bg-dark text-white">
+<body class="bg-dark">
 
     <!-- Hlavička -->
     <header class="bg-danger text-white text-center py-4 mb-4">
@@ -27,24 +31,25 @@
 
     <!-- Hlavní obsah -->
     <main class="container">
-        <div class="form-container mb-4">
-            <p>Přihlášen jako <strong><span id="currentUser"></span></strong> <a href="/logout" class="btn btn-sm btn-light ms-2">Odhlásit</a></p>
-        </div>
 
-        <!-- Formulář pro odesílání zpráv -->
+        <!-- Formulář pro zadání jména a zprávy -->
         <div class="card mb-4 form-container">
             <div class="card-body">
                 <form id="chatForm">
                     <div class="mb-3">
-                        <label for="message" class="form-label text-dark">Zpráva</label>
-                        <textarea id="message" name="message" class="form-control bg-light" rows="3" placeholder="Napiš zprávu..." required></textarea>
+                        <label for="username" class="form-label text-dark">Name</label>
+                        <input type="text" id="username" name="username" class="form-control bg-light" placeholder="Name" required>
                     </div>
-                    <button type="submit" class="btn btn-warning">Odeslat</button>
+                    <div class="mb-3">
+                        <label for="message" class="form-label text-dark">Message</label>
+                        <textarea id="message" name="message" class="form-control bg-light" rows="3" placeholder="Write some message here..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-warning">Send</button>
                 </form>
             </div>
         </div>
 
-        <!-- Zprávy -->
+        <!-- Kontejner pro zprávy -->
         <div id="messages" class="d-flex flex-column align-items-center gap-3"></div>
     </main>
 
@@ -57,45 +62,77 @@
     <script src="/socket.io/socket.io.js"></script>
 
     <script>
-        const socket = io();
+        const socket = io(); // Připojení k Socket.IO serveru
 
-        // Načti jméno přihlášeného uživatele ze serveru (vloženého do HTML)
-        const currentUser = "<%= username %>";
-        document.getElementById("currentUser").innerText = currentUser;
+        // Po připojení načti všechny uložené zprávy
+        socket.on("initMessages", (messages) => {
+            renderMessages(messages);
+        });
 
-        socket.on("initMessages", (messages) => renderMessages(messages));
-        socket.on("chatMessage", (msg) => appendMessage(msg));
+        // Při obdržení nové zprávy od serveru ji zobraz
+        socket.on("chatMessage", (msg) => {
+            appendMessage(msg);
+        });
 
+        // Událost odeslání formuláře
         document.getElementById("chatForm").addEventListener("submit", function (e) {
-            e.preventDefault();
+            e.preventDefault(); // Zamezení klasickému odeslání přes HTTP
+
+            const username = document.getElementById("username").value.trim();
             const message = document.getElementById("message").value.trim();
-            if (message) {
-                socket.emit("chatMessage", { username: currentUser, message });
+
+            if (username && message) {
+                // Odeslání zprávy serveru přes WebSocket
+                socket.emit("chatMessage", { username, message });
+
+                // Vyčištění pole zprávy
                 document.getElementById("message").value = "";
             }
         });
 
+        // Zobrazí všechny zprávy (při prvním načtení)
         function renderMessages(messages) {
             const container = document.getElementById('messages');
             container.innerHTML = messages.map(createMessageHTML).join('');
             container.scrollTop = container.scrollHeight;
         }
 
+        // Přidá jednu zprávu (v reálném čase)
         function appendMessage(msg) {
             const container = document.getElementById('messages');
             container.innerHTML += createMessageHTML(msg);
             container.scrollTop = container.scrollHeight;
         }
 
+        // Vytvoření HTML pro jednu zprávu
         function createMessageHTML(msg) {
-            return `
+            return 
                 <div class="card shadow-sm w-100" style="max-width: 600px;">
                     <div class="card-body">
                         <h5 class="card-title">${msg.username}</h5>
                         <p class="card-text">${msg.message}</p>
                     </div>
-                </div>`;
+                </div>
+            ;
         }
+
+        // Kontrola věku uživatele
+        window.onload = function () {
+            let age = prompt("Please enter your age:");
+            if (age === null || age.trim() === "") {
+                alert("The age is required to enter this chat.");
+                window.location.href = "https://www.google.com";
+            } else {
+                age = parseInt(age, 10);
+                if (isNaN(age) || age < 18) {
+                    alert("You have to be at least 18 to enter this chat.");
+                    window.location.href = "https://www.google.com";
+                }
+            }
+        };
     </script>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-</html>
+</html> 
