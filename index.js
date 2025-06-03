@@ -14,13 +14,17 @@ app.use(express.static("public"));
 io.on("connection", (socket) => {
     console.log("Nový uživatel připojen");
 
+    // Pošli všechny zprávy hned po připojení
     socket.emit("initMessages", storage.getMessages());
 
+    // Přijmi zprávu od klienta
     socket.on("chatMessage", ({ username, message }) => {
         console.log("Nová zpráva:", { username, message });
 
+        // Ulož zprávu
         storage.addMessage(username, message);
 
+        // Pošli zprávu všem klientům
         io.emit("chatMessage", { username, message });
     });
 
@@ -31,10 +35,6 @@ io.on("connection", (socket) => {
 
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-app.get("/about", (req, res) => {
-    res.send("Navštívili jste server: Dominik Svoboda");
 });
 
 server.listen(port, () => {
