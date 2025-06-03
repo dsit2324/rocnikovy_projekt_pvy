@@ -1,5 +1,8 @@
 // Načteme potřebné moduly
 const express = require("express"); // Webový framework
+const session = require("express-session");
+const bodyParser = require("body-parser");
+const userStorage = require("./storage/userStorage");
 const http = require("http"); // HTTP server
 const { Server } = require("socket.io"); // WebSocket server (Socket.IO)
 const path = require("path"); // Práce s cestami
@@ -42,6 +45,13 @@ io.on("connection", (socket) => {
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "index.html"));
 });
+
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(session({
+    secret: "tajny-klic",
+    resave: false,
+    saveUninitialized: true,
+}));
 
 // Spuštění serveru
 server.listen(port, () => {
