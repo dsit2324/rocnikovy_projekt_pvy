@@ -1,51 +1,18 @@
-// Načteme potřebné moduly
-const express = require("express"); // Webový framework
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const path = require("path");
 const session = require("express-session");
 const bodyParser = require("body-parser");
+const storage = require("./storage/jsonStorage");
 const userStorage = require("./storage/userStorage");
-const http = require("http"); // HTTP server
-const { Server } = require("socket.io"); // WebSocket server (Socket.IO)
-const path = require("path"); // Práce s cestami
-const storage = require("./storage/jsonStorage"); // Vlastní modul pro ukládání zpráv
 
-// Inicializace aplikace
-const app = express(); // Vytvoření instance Express aplikace
-const server = http.createServer(app); // Vytvoření HTTP serveru
-const io = new Server(server); // Připojení Socket.IO k HTTP serveru
-const port = 3000; // Port, na kterém server poběží
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+const port = 3000;
 
-// Nastavení statické složky pro veřejné soubory (např. index.html, CSS, JS)
 app.use(express.static("public"));
-
-// Událost: nový uživatel se připojil přes WebSocket
-io.on("connection", (socket) => {
-    console.log("Nový uživatel připojen");
-
-    // Hned po připojení pošleme všechny dosavadní zprávy uživateli
-    socket.emit("initMessages", storage.getMessages());
-
-    // Událost: klient poslal novou zprávu
-    socket.on("chatMessage", ({ username, message }) => {
-        console.log("Nová zpráva:", { username, message });
-
-        // Uložíme zprávu do úložiště
-        storage.addMessage(username, message);
-
-        // Pošleme zprávu všem připojeným klientům
-        io.emit("chatMessage", { username, message });
-    });
-
-    // Událost: uživatel se odpojil
-    socket.on("disconnect", () => {
-        console.log("Uživatel odpojen");
-    });
-});
-
-// HTTP GET požadavek na kořenový URL – pošle HTML stránku
-app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(session({
     secret: "tajny-klic",
@@ -53,7 +20,70 @@ app.use(session({
     saveUninitialized: true,
 }));
 
-// Spuštění serveru
+// Middleware pro kontrolu přihlášení
+function requireLogin(req, res, next) {
+    if (!req.session.username) {
+        return res.redirect("/login.html");
+    }
+    next();
+}
+
+// ROUTES
+
+// Přihlašovací stránka (formulář je v login.html)
+app.post("/login", (req, res) => {
+    const { username, password } = req.body;
+    const user = userStorage.verifyUser(username, password);
+    if (!user) {
+        return res.send("Špatné přihlašovací údaje. <a href='/login.html'>Zpět</a>");
+    }
+    req.session.username = username;
+    res.redirect("/");
+});
+
+// Registrace
+app.post("/register", (req, res) => {
+    const { username, password } = req.body;
+    if (userStorage.getUsers().some(u => u.username === username)) {
+        return res.send("Uživatel už existuje. <a href='/register.html'>Zpět</a>");
+    }
+    userStorage.addUser({ username, password });
+    res.redirect("/login.html");
+});
+
+// Odhlášení
+app.get("/logout", (req, res) => {
+    req.session.destroy(() => {
+        res.redirect("/login.html");
+    });
+});
+
+// Chatová stránka – jen pro přihlášené
+app.get("/", requireLogin, (req, res) => {
+    const fs = require("fs");
+    let indexHtml = fs.readFileSync(path.join(__dirname, "public", "index.html"), "utf8");
+    // Vložíme přihlášené jméno do HTML
+    indexHtml = indexHtml.replace("<%= username %>", req.session.username);
+    res.send(indexHtml);
+});
+
+// Socket.IO
+io.on("connection", (socket) => {
+    console.log("Uživatel připojen");
+
+    socket.emit("initMessages", storage.getMessages());
+
+    socket.on("chatMessage", ({ username, message }) => {
+        console.log("Nová zpráva:", { username, message });
+        storage.addMessage(username, message);
+        io.emit("chatMessage", { username, message });
+    });
+
+    socket.on("disconnect", () => {
+        console.log("Uživatel odpojen");
+    });
+});
+
 server.listen(port, () => {
     console.log(`Server běží na http://localhost:${port}`);
 });
