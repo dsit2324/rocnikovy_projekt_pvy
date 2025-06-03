@@ -1,42 +1,49 @@
-const express = require("express");
-const http = require("http");
-const { Server } = require("socket.io");
-const path = require("path");
-const storage = require("./storage/jsonStorage");
+// Načteme potřebné moduly
+const express = require("express"); // Webový framework
+const http = require("http"); // HTTP server
+const { Server } = require("socket.io"); // WebSocket server (Socket.IO)
+const path = require("path"); // Práce s cestami
+const storage = require("./storage/jsonStorage"); // Vlastní modul pro ukládání zpráv
 
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
-const port = 3000;
+// Inicializace aplikace
+const app = express(); // Vytvoření instance Express aplikace
+const server = http.createServer(app); // Vytvoření HTTP serveru
+const io = new Server(server); // Připojení Socket.IO k HTTP serveru
+const port = 3000; // Port, na kterém server poběží
 
+// Nastavení statické složky pro veřejné soubory (např. index.html, CSS, JS)
 app.use(express.static("public"));
 
+// Událost: nový uživatel se připojil přes WebSocket
 io.on("connection", (socket) => {
     console.log("Nový uživatel připojen");
 
-    // Pošli všechny zprávy hned po připojení
+    // Hned po připojení pošleme všechny dosavadní zprávy uživateli
     socket.emit("initMessages", storage.getMessages());
 
-    // Přijmi zprávu od klienta
+    // Událost: klient poslal novou zprávu
     socket.on("chatMessage", ({ username, message }) => {
         console.log("Nová zpráva:", { username, message });
 
-        // Ulož zprávu
+        // Uložíme zprávu do úložiště
         storage.addMessage(username, message);
 
-        // Pošli zprávu všem klientům
+        // Pošleme zprávu všem připojeným klientům
         io.emit("chatMessage", { username, message });
     });
 
+    // Událost: uživatel se odpojil
     socket.on("disconnect", () => {
         console.log("Uživatel odpojen");
     });
 });
 
+// HTTP GET požadavek na kořenový URL – pošle HTML stránku
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+// Spuštění serveru
 server.listen(port, () => {
     console.log(`Server běží na http://localhost:${port}`);
 });
