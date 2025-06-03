@@ -9,6 +9,8 @@
         #messages {
             max-width: 600px;
             margin: 0 auto;
+            overflow-y: auto;
+            max-height: 400px;
         }
         .form-container {
             max-width: 600px;
@@ -24,7 +26,7 @@
     <main class="container">
         <div class="card mb-4 form-container">
             <div class="card-body">
-                <form action="/send" method="post">
+                <form id="chatForm">
                     <div class="mb-3">
                         <label for="username" class="form-label text-dark">Name</label>
                         <input type="text" id="username" name="username" class="form-control bg-light" placeholder="Name" required>
@@ -45,28 +47,55 @@
         <p class="mb-0">&copy; 2025 - IT2 (P2) - Dominik Svoboda</p>
     </footer>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script>
-        // Funkce pro načtení zpráv
-        async function loadMessages() {
-            const url = "/messages";
-            const response = await fetch(url);
-            const messages = await response.json();
+        const socket = io();
 
-            const messagesHTML = messages.map(msg => 
+        socket.on("initMessages", (messages) => {
+            renderMessages(messages);
+        });
+
+        socket.on("chatMessage", (msg) => {
+            appendMessage(msg);
+        });
+
+        document.getElementById("chatForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            const username = document.getElementById("username").value.trim();
+            const message = document.getElementById("message").value.trim();
+
+            if (username && message) {
+                socket.emit("chatMessage", { username, message });
+                document.getElementById("message").value = "";
+            }
+        });
+
+        function renderMessages(messages) {
+            const container = document.getElementById('messages');
+            container.innerHTML = messages.map(createMessageHTML).join('');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function appendMessage(msg) {
+            const container = document.getElementById('messages');
+            container.innerHTML += createMessageHTML(msg);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function createMessageHTML(msg) {
+            return `
                 <div class="card shadow-sm w-100" style="max-width: 600px;">
                     <div class="card-body">
                         <h5 class="card-title">${msg.username}</h5>
                         <p class="card-text">${msg.message}</p>
                     </div>
                 </div>
-            ).join('\n');
-
-            document.getElementById('messages').innerHTML = messagesHTML;
-            const container = document.getElementById('messages');
-            container.scrollTop = container.scrollHeight;
+            `;
         }
 
-        window.onload = function() {
+        // Věková kontrola
+        window.onload = function () {
             let age = prompt("Please enter your age:");
             if (age === null || age.trim() === "") {
                 alert("The age is required to enter this chat.");
@@ -74,11 +103,8 @@
             } else {
                 age = parseInt(age, 10);
                 if (isNaN(age) || age < 18) {
-                    alert("You have to be atleast 18 to enter this chat.");
+                    alert("You have to be at least 18 to enter this chat.");
                     window.location.href = "https://www.google.com";
-                } else {
-                    loadMessages();
-                    setInterval(loadMessages, 5000);
                 }
             }
         };
