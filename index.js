@@ -12,7 +12,7 @@ const port = 3000;
 app.use(express.static("public"));
 
 io.on("connection", (socket) => {
-    console.log("🔌 Nový uživatel připojen");
+    console.log("Nový uživatel připojen");
 
     socket.emit("initMessages", storage.getMessages());
 
