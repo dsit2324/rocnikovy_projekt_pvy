@@ -9,8 +9,6 @@
         #messages {
             max-width: 600px;
             margin: 0 auto;
-            overflow-y: auto;
-            max-height: 500px;
         }
         .form-container {
             max-width: 600px;
@@ -26,14 +24,14 @@
     <main class="container">
         <div class="card mb-4 form-container">
             <div class="card-body">
-                <form id="chat-form">
+                <form action="/send" method="post">
                     <div class="mb-3">
                         <label for="username" class="form-label text-dark">Name</label>
-                        <input type="text" id="username" class="form-control bg-light" placeholder="Name" required>
+                        <input type="text" id="username" name="username" class="form-control bg-light" placeholder="Name" required>
                     </div>
                     <div class="mb-3">
                         <label for="message" class="form-label text-dark">Message</label>
-                        <textarea id="message" class="form-control bg-light" rows="3" placeholder="Write some message here..." required></textarea>
+                        <textarea id="message" name="message" class="form-control bg-light" rows="3" placeholder="Write some message here..." required></textarea>
                     </div>
                     <button type="submit" class="btn btn-warning">Send</button>
                 </form>
@@ -47,42 +45,28 @@
         <p class="mb-0">&copy; 2025 - IT2 (P2) - Dominik Svoboda</p>
     </footer>
 
-    <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io();
-        const form = document.getElementById("chat-form");
-        const messagesDiv = document.getElementById("messages");
+        // Funkce pro načtení zpráv
+        async function loadMessages() {
+            const url = "/messages";
+            const response = await fetch(url);
+            const messages = await response.json();
 
-        function appendMessage(msg) {
-            const messageHTML = `
+            const messagesHTML = messages.map(msg => 
                 <div class="card shadow-sm w-100" style="max-width: 600px;">
                     <div class="card-body">
                         <h5 class="card-title">${msg.username}</h5>
                         <p class="card-text">${msg.message}</p>
                     </div>
-                </div>`;
-            messagesDiv.insertAdjacentHTML('beforeend', messageHTML);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                </div>
+            ).join('\n');
+
+            document.getElementById('messages').innerHTML = messagesHTML;
+            const container = document.getElementById('messages');
+            container.scrollTop = container.scrollHeight;
         }
 
-        socket.on("initMessages", (msgs) => {
-            messagesDiv.innerHTML = "";
-            msgs.forEach(appendMessage);
-        });
-
-        socket.on("chatMessage", appendMessage);
-
-        form.addEventListener("submit", (e) => {
-            e.preventDefault();
-            const username = document.getElementById("username").value.trim();
-            const message = document.getElementById("message").value.trim();
-            if (username && message) {
-                socket.emit("chatMessage", { username, message });
-                document.getElementById("message").value = "";
-            }
-        });
-
-        window.onload = () => {
+        window.onload = function() {
             let age = prompt("Please enter your age:");
             if (age === null || age.trim() === "") {
                 alert("The age is required to enter this chat.");
@@ -90,8 +74,11 @@
             } else {
                 age = parseInt(age, 10);
                 if (isNaN(age) || age < 18) {
-                    alert("You have to be at least 18 to enter this chat.");
+                    alert("You have to be atleast 18 to enter this chat.");
                     window.location.href = "https://www.google.com";
+                } else {
+                    loadMessages();
+                    setInterval(loadMessages, 5000);
                 }
             }
         };
